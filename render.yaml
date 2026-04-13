@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: humanizeai
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://abygywbepxccgpekvkwk.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        fromSecret: SUPABASE_ANON_KEY
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        fromSecret: SUPABASE_SERVICE_ROLE_KEY
+      - key: ANTHROPIC_API_KEY
+        fromSecret: ANTHROPIC_API_KEY
+      - key: STRIPE_SECRET_KEY
+        fromSecret: STRIPE_SECRET_KEY
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        fromSecret: STRIPE_PUBLISHABLE_KEY
+      - key: STRIPE_WEBHOOK_SECRET
+        fromSecret: STRIPE_WEBHOOK_SECRET
+      - key: STRIPE_BASIC_MONTHLY_PRICE_ID
+        fromSecret: STRIPE_BASIC_MONTHLY_PRICE_ID
+      - key: STRIPE_BASIC_ANNUAL_PRICE_ID
+        fromSecret: STRIPE_BASIC_ANNUAL_PRICE_ID
+      - key: STRIPE_PREMIUM_MONTHLY_PRICE_ID
+        fromSecret: STRIPE_PREMIUM_MONTHLY_PRICE_ID
+      - key: STRIPE_PREMIUM_ANNUAL_PRICE_ID
+        fromSecret: STRIPE_PREMIUM_ANNUAL_PRICE_ID
+      - key: RESEND_API_KEY
+        fromSecret: RESEND_API_KEY
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://humanizeai.onrender.com
+      - key: NEXT_PUBLIC_APP_NAME
+        value: HumanizeAI

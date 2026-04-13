@@ -1,0 +1,67 @@
+export const PLANS = {
+  free: {
+    name: 'Free',
+    price: 0,
+    dailyHumanizations: 3,
+    dailyScans: 5,
+    maxWords: 1000,
+    historyJobs: 0,
+    features: [
+      '3 humanizations per day',
+      '5 AI scans per day',
+      'Up to 1,000 words',
+      'Standard mode only',
+      'Deep Scan',
+    ],
+    notIncluded: [
+      'History',
+      'All rewrite modes',
+      'Priority support',
+    ],
+  },
+  basic: {
+    name: 'Basic',
+    monthlyPrice: 20,
+    annualPrice: 200,
+    monthlyPriceId: process.env.STRIPE_BASIC_MONTHLY_PRICE_ID,
+    annualPriceId: process.env.STRIPE_BASIC_ANNUAL_PRICE_ID,
+    dailyHumanizations: 15,
+    dailyScans: 25,
+    maxWords: 2000,
+    historyJobs: 30,
+    features: [
+      '15 humanizations per day',
+      '25 AI scans per day',
+      'Up to 2,000 words',
+      'All rewrite modes',
+      'Deep Scan',
+      'Last 30 jobs history',
+    ],
+    notIncluded: [
+      'Priority support',
+    ],
+  },
+  premium: {
+    name: 'Premium',
+    monthlyPrice: 50,
+    annualPrice: 500,
+    monthlyPriceId: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
+    annualPriceId: process.env.STRIPE_PREMIUM_ANNUAL_PRICE_ID,
+    dailyHumanizations: 50,
+    dailyScans: 100,
+    maxWords: 5000,
+    historyJobs: -1,
+    features: [
+      '50 humanizations per day',
+      '100 AI scans per day',
+      'Up to 5,000 words',
+      'All rewrite modes',
+      'Deep Scan',
+      'Unlimited history',
+      'Priority support',
+    ],
+    notIncluded: [],
+  },
+} as const
+
+export type PlanName = keyof typeof PLANS
