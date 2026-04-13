@@ -8,19 +8,22 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const maxDuration = 60
 
+// Guest users: 200 word limit, rate-limited by IP
+const GUEST_WORD_LIMIT = 200
+const guestRateLimit = new Map<string, number>()
+
+function checkGuestRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const last = guestRateLimit.get(ip) || 0
+  if (now - last < 30000) return false // 30s cooldown for guests
+  guestRateLimit.set(ip, now)
+  return true
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-
-    // Rate limit: 1 request per 5 seconds
-    if (!checkRateLimit(user.id, 5000)) {
-      return NextResponse.json({ error: 'Too many requests. Wait 5 seconds.' }, { status: 429 })
-    }
 
     const body = await request.json()
     const { text, intensity = 7, mode = 'standard' } = body
@@ -29,7 +32,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 })
     }
 
-    // Get plan limits
+    const wordCount = countWords(text)
+
+    // ── Guest (unauthenticated) path ──────────────────────────────────────────
+    if (!user) {
+      const ip =
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        request.headers.get('x-real-ip') ||
+        'unknown'
+
+      if (!checkGuestRateLimit(ip)) {
+        return NextResponse.json(
+          { error: 'Please wait 30 seconds before trying again.' },
+          { status: 429 }
+        )
+      }
+
+      if (wordCount > GUEST_WORD_LIMIT) {
+        return NextResponse.json(
+          { error: `Guest limit is ${GUEST_WORD_LIMIT} words. Sign up free for 1,000 words.` },
+          { status: 403 }
+        )
+      }
+
+      const stream = await humanizeText(text, Math.min(intensity, 7), 'standard')
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+          'X-Guest': 'true',
+        },
+      })
+    }
+
+    // ── Authenticated path ────────────────────────────────────────────────────
+    if (!checkRateLimit(user.id, 5000)) {
+      return NextResponse.json({ error: 'Too many requests. Wait 5 seconds.' }, { status: 429 })
+    }
+
     const serviceClient = await createServiceClient()
     const { data: profile } = await serviceClient
       .from('profiles')
@@ -43,8 +84,6 @@ export async function POST(request: NextRequest) {
       .eq('plan', profile?.plan ?? 'free')
       .single()
 
-    // Check word limit
-    const wordCount = countWords(text)
     const maxWords = planLimits?.max_words_per_input ?? 1000
     if (wordCount > maxWords) {
       return NextResponse.json(
@@ -53,7 +92,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check & increment daily usage
     const { allowed, remaining } = await checkAndIncrementUsage(user.id, 'humanization')
     if (!allowed) {
       return NextResponse.json(
@@ -62,12 +100,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate intensity and mode
     const safeIntensity = Math.min(10, Math.max(1, Number(intensity) || 7))
     const validModes = ['standard', 'academic', 'business', 'casual', 'creative']
     const safeMode = validModes.includes(mode) ? mode : 'standard'
 
-    // Create job record
     const { data: job } = await serviceClient
       .from('humanization_jobs')
       .insert({
@@ -81,28 +117,21 @@ export async function POST(request: NextRequest) {
       .select('id')
       .single()
 
-    // Stream humanized text
     const stream = await humanizeText(text, safeIntensity, safeMode)
-
-    // Update job on completion (fire and forget)
     const jobId = job?.id
-    if (jobId) {
-      // We'll collect the full text via a tee'd stream to save it
-      const [streamForClient, streamForSave] = stream.tee()
 
-      // Save job asynchronously
+    if (jobId) {
+      const [streamForClient, streamForSave] = stream.tee()
       ;(async () => {
         try {
           const reader = streamForSave.getReader()
           const decoder = new TextDecoder()
           let fullText = ''
-
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
             const chunk = decoder.decode(value)
-            const lines = chunk.split('\n')
-            for (const line of lines) {
+            for (const line of chunk.split('\n')) {
               if (line.startsWith('data: ') && line !== 'data: [DONE]') {
                 try {
                   const parsed = JSON.parse(line.slice(6))
@@ -111,13 +140,9 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-
           await serviceClient
             .from('humanization_jobs')
-            .update({
-              humanized_text: fullText,
-              status: 'completed',
-            })
+            .update({ humanized_text: fullText, status: 'completed' })
             .eq('id', jobId)
         } catch {}
       })()

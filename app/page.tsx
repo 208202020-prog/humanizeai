@@ -2,6 +2,7 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { Button } from '@/components/ui/button'
 import { PricingCards } from '@/components/pricing/PricingCards'
+import { LiveDemo } from '@/components/landing/LiveDemo'
 import Link from 'next/link'
 import { CheckCircle2, Sparkles, Scan, History, Zap, Shield, Users } from 'lucide-react'
 
@@ -105,6 +106,17 @@ export default function Home() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Live Demo */}
+      <section className="py-16 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">Try It Now — No Account Needed</h2>
+            <p className="text-muted-foreground text-sm">Paste up to 200 words of AI text and humanize it instantly</p>
+          </div>
+          <LiveDemo />
         </div>
       </section>
 
