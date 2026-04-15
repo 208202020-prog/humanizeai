@@ -9,6 +9,19 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      SUPABASE_SERVICE_ROLE_KEY: placeholder
+      ANTHROPIC_API_KEY: sk-ant-placeholder-key
+      STRIPE_SECRET_KEY: sk_test_placeholder_key
+      STRIPE_BASIC_MONTHLY_PRICE_ID: price_test
+      STRIPE_BASIC_ANNUAL_PRICE_ID: price_test
+      STRIPE_PREMIUM_MONTHLY_PRICE_ID: price_test
+      STRIPE_PREMIUM_ANNUAL_PRICE_ID: price_test
+      STRIPE_WEBHOOK_SECRET: whsec_test
+      NEXT_PUBLIC_APP_URL: https://humanizeai.dukaribu.com
+      NEXT_PUBLIC_APP_NAME: HumanizeAI
     steps:
       - uses: actions/checkout@v4
 
@@ -26,24 +39,9 @@ jobs:
         run: npm run lint || true
 
       - name: Run tests
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
-          SUPABASE_SERVICE_ROLE_KEY: placeholder
-          ANTHROPIC_API_KEY: placeholder
-          STRIPE_SECRET_KEY: placeholder
-          STRIPE_BASIC_MONTHLY_PRICE_ID: price_test
-          STRIPE_BASIC_ANNUAL_PRICE_ID: price_test
-          STRIPE_PREMIUM_MONTHLY_PRICE_ID: price_test
-          STRIPE_PREMIUM_ANNUAL_PRICE_ID: price_test
         run: npm test
 
       - name: Build check
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
-          NEXT_PUBLIC_APP_URL: https://humanizeai.dukaribu.com
-          NEXT_PUBLIC_APP_NAME: HumanizeAI
         run: npm run build
 
   deploy:
