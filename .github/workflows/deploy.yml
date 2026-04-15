@@ -1,0 +1,84 @@
+name: Test & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint || true
+
+      - name: Run tests
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          ANTHROPIC_API_KEY: placeholder
+          STRIPE_SECRET_KEY: placeholder
+          STRIPE_BASIC_MONTHLY_PRICE_ID: price_test
+          STRIPE_BASIC_ANNUAL_PRICE_ID: price_test
+          STRIPE_PREMIUM_MONTHLY_PRICE_ID: price_test
+          STRIPE_PREMIUM_ANNUAL_PRICE_ID: price_test
+        run: npm test
+
+      - name: Build check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          NEXT_PUBLIC_APP_URL: https://humanizeai.dukaribu.com
+          NEXT_PUBLIC_APP_NAME: HumanizeAI
+        run: npm run build
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            cd /var/www/humanizeai
+
+            # Backup .env before git operations
+            [ -f .env.local ] && sudo cp .env.local /tmp/.env.local.bak.humanizeai
+
+            sudo chown -R www-data:www-data .
+            sudo -u www-data git checkout -- .
+            sudo -u www-data git clean -fd -e .env.local
+            sudo -u www-data git pull origin main
+
+            # Restore .env after git operations
+            [ -f /tmp/.env.local.bak.humanizeai ] && sudo cp /tmp/.env.local.bak.humanizeai .env.local && sudo chown www-data:www-data .env.local
+
+            # Install, build, restart
+            sudo -u www-data npm install
+            sudo -u www-data NODE_OPTIONS='--max-old-space-size=512' npm run build
+
+            sudo -u www-data PM2_HOME=/var/www/.pm2 pm2 restart humanizeai-api
+            sudo -u www-data PM2_HOME=/var/www/.pm2 pm2 save
+
+            echo "Deploy complete: humanizeai"

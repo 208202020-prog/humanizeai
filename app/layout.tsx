@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   description:
     "Transform AI-generated text into naturally human writing. Our AI humanizer bypasses GPTZero, ZeroGPT, and Turnitin with 95%+ success rate.",
   keywords: ["ai humanizer", "bypass gptzero", "bypass turnitin", "bypass zerogpt", "ai text humanizer", "humanize ai text"],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   openGraph: {
     title: "HumanizeAI — Bypass GPTZero, ZeroGPT & Turnitin",
     description: "Transform AI-generated text into naturally human writing.",
